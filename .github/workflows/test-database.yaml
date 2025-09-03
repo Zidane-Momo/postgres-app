@@ -1,0 +1,50 @@
+name: Test PostgreSQL
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  test-postgres:
+    name: Test PostgreSQL
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: eu-central-1
+
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v3
+
+    - name: Update kubeconfig
+      run: aws eks update-kubeconfig --name zCluster --region eu-central-1
+
+    - name: Test Database
+      run: |
+        kubectl exec -it postgres-postgresql-primary-0 -n postgres -- /bin/bash
+        kubectl exec -n postgres postgres-postgresql-primary-0 -- bash -c "
+          PGPASSWORD=postgres-password psql -U postgres <<EOF
+          CREATE DATABASE cgm_demo_db;
+          \c cgm_demo_db
+          CREATE TABLE employees (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(100),
+            role VARCHAR(50)
+          );
+          INSERT INTO employees (name, role) VALUES
+            ('Max', 'Engineer'),
+            ('Bob', 'Designer'),
+            ('Charlie', 'Manager');
+          UPDATE employees SET role = 'Team Lead' WHERE name = 'Max';
+          DELETE FROM employees WHERE name = 'Bob';
+          SELECT * FROM employees;
+          \q
+        EOF
+        "

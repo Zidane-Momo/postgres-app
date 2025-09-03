@@ -1,0 +1,35 @@
+name: Deploy PostgreSQL
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  deploy-postgres:
+    name: Deploy PostgreSQL via Helm
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: eu-central-1
+
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v3
+
+    - name: Setup Helm
+      uses: azure/setup-helm@v3
+
+    - name: Update kubeconfig
+      run: aws eks update-kubeconfig --name zCluster --region eu-central-1
+
+    - name: Deploy PostgreSQL
+      run: |
+        kubectl get namespace postgres || kubectl create namespace postgres
+        helm upgrade --install postgres ./postgresql -n postgres

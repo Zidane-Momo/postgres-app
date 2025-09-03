@@ -1,0 +1,14 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: zCluster
+  region: eu-central-1
+
+managedNodeGroups:
+  - name: zNodes
+    instanceType: t3.medium
+    desiredCapacity: 3
+    minSize: 3
+    maxSize: 10
+    maxPodsPerNode: 80
